@@ -22,5 +22,5 @@ php -m | grep -E "dom|xml"
 echo "Installing PHP MySQL extension..."
 apt install -y php8.4-mysql
 
-echo "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"
+echo ""
 php -m | grep mysql
