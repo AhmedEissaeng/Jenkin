@@ -33,24 +33,6 @@ pipeline {
                 '''
             }
         }
-        stage('Start MySQL') {
-            steps {
-                sh '''
-                    docker run -d \
-                    --name mysql-ci \
-                    -e MYSQL_DATABASE=laravel \
-                    -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
-                    -p 3306:3306 \
-                    mysql:8
-                '''
-            }
-        }
-
-        stage('Wait for DB') {
-            steps {
-                sh 'sleep 30'
-            }
-        }
         
         stage('Install Dependencies') {
             steps {
@@ -69,6 +51,7 @@ pipeline {
                     php artisan key:generate --force
            
                     php artisan config:clear
+                    php artisan migrate --force
                     php artisan cache:clear
                     php artisan route:clear
                     php artisan view:clear
