@@ -29,7 +29,6 @@ pipeline {
                     else
                         "file not found"
                     fi
-                    nl .env
                 '''
             }
         }
