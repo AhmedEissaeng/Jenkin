@@ -58,5 +58,17 @@ pipeline {
                 '''
             }       
         }
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    export DB_CONNECTION=sqlite
+                    export DB_DATABASE=":memory:"
+
+                    php artisan config:clear
+                    
+                    php artisan migrate --env=testing --force
+                '''
+            }
+        }
     }
 }
