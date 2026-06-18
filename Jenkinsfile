@@ -29,6 +29,7 @@ pipeline {
                     else
                         "file not found"
                     fi
+                    cat .env
                 '''
             }
         }
@@ -49,6 +50,7 @@ pipeline {
                     php artisan package:discover
                     php artisan key:generate --force
                     php artisan config:clear
+                    
                     php artisan migrate --force
                     php artisan cache:clear
                     php artisan route:clear
@@ -59,7 +61,13 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
+                    export DB_CONNECTION=sqlite
+                    export DB_DATABASE=":memory:"
+                    php artisan config:clear
+                    
+                    php artisan migrate --env=testing --force
                     php artisan test
+                    
                 '''
             }
         }
