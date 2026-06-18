@@ -61,15 +61,23 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
+                    set -euo pipefail
                     export DB_CONNECTION=sqlite
                     export DB_DATABASE=":memory:"
                     php artisan config:clear
                     
                     php artisan migrate --env=testing --force
-                    php artisan test
+                    
+                    mkdir -p storage/logs
+                    php artisan test --log-junit=storage/logs/junit.xml
                     
                 '''
             }
+        }
+    }
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: 'storage/logs/junit.xml'
         }
     }
 }
