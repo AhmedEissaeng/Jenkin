@@ -1,0 +1,98 @@
+pipeline {
+    agent any
+
+    environment {
+        FLUTTER_HOME = '/opt/flutter'
+        PATH = "${FLUTTER_HOME}/bin:${env.PATH}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git(
+                    url: 'https://github.com/nowdelivery/VendorApp_Now',
+                    branch: 'develop',
+                    credentialsId: 'github-pat'
+                )
+            }
+        }
+
+        stage('Verify Flutter') {
+            steps {
+                sh '''
+                    git config --global --add safe.directory /opt/flutter
+                    flutter --version
+                    flutter clean
+                    flutter config --android-sdk /opt/android-sdk
+                    flutter doctor
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    flutter pub get
+                '''
+            }
+        }
+
+        stage('Analyze Code') {
+            steps {
+                sh '''
+                    flutter analyze --no-fatal-warnings || true
+                '''
+            }
+        }
+
+        stage('Build APK') {
+            steps {
+                sh '''
+                    flutter build apk --release
+                '''
+            }
+        }
+
+        stage('Archive APK') {
+            steps {
+                archiveArtifacts(
+                    artifacts: 'build/app/outputs/flutter-apk/*.apk',
+                    fingerprint: true
+                )
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build -t flutter-test-app:${BUILD_NUMBER} .
+                '''
+            }
+        }
+
+        stage('Push Docker Image to DockerHub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+
+                        docker tag flutter-test-app:${BUILD_NUMBER} $DOCKER_USER/flutter-test-app:${BUILD_NUMBER}
+                        docker tag flutter-test-app:${BUILD_NUMBER} $DOCKER_USER/flutter-test-app:latest
+
+                        docker push $DOCKER_USER/flutter-test-app:${BUILD_NUMBER}
+                        docker push $DOCKER_USER/flutter-test-app:latest
+                    '''
+                }
+            }
+        }
+
+    }
+}
+
